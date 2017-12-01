@@ -326,4 +326,20 @@ app.post('/favorites', passport.authenticate('jwt', { session: false }), (req, r
     })
 })
 
+app.delete('/favorites/:bookid', passport.authenticate('jwt', { session: false }), (req, res) => {
+  const { bookid } = req.params
+  if (!bookid || isNaN(bookid)) {
+    res.status(404).json('Invalid parameter(s)')
+    return
+  }
+  pool.query(
+    'DELETE FROM favorites WHERE uid = $1 AND bookid = $2',
+    [req.user.id, bookid]
+  ).then(() => {
+    res.json({ success: true })
+  }).catch(() => {
+    res.status(500).json('Server error')
+  })
+})
+
 app.listen(PORT, () => console.log(`Listening on ${PORT}`))
