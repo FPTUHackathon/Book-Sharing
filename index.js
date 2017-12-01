@@ -303,6 +303,17 @@ app.get('/comment/:id', (req, res) => {
   }
 })
 
+app.get('/favorites', passport.authenticate('jwt', { session: false }), (req, res) => {
+  pool.query(
+    'SELECT books.* FROM favorites INNER JOIN books ON favorites.bookid = books.id WHERE uid = $1',
+    [req.user.id]
+  ).then((result) => {
+    res.json(result.rows)
+  }).catch(() => {
+    res.status(500).json('Server error')
+  })
+})
+
 app.post('/favorites', passport.authenticate('jwt', { session: false }), (req, res) => {
   const { bookid } = req.body
   if (!bookid || isNaN(bookid)) {
