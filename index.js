@@ -303,4 +303,27 @@ app.get('/comment/:id', (req, res) => {
   }
 })
 
+app.post('/favorites', passport.authenticate('jwt', { session: false }), (req, res) => {
+  const { bookid } = req.body
+  if (!bookid || isNaN(bookid)) {
+    res.status(404).json('Book not found')
+    return
+  }
+  pool.query('SELECT * FROM books WHERE id = $1', [bookid])
+    .then((result) => {
+      if (result.rows.length === 0) {
+        res.status(404).json('Book not found')
+      } else {
+        pool.query(
+          'INSERT INTO favorites (uid, bookid) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+          [req.user.id, bookid]
+        ).then(() => {
+          res.json({ success: true })
+        })
+      }
+    }).catch(() => {
+      res.status(500).json('Server error')
+    })
+})
+
 app.listen(PORT, () => console.log(`Listening on ${PORT}`))
