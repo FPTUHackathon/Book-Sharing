@@ -82,6 +82,17 @@ app.get('/book/:id', (req, res) => {
     })
 })
 
+app.get('/isbn/:isbn', (req, res) => {
+  pool.query(
+    'SELECT * FROM books WHERE isbn = $1',
+    [req.params.isbn]
+  ).then((result) => {
+    res.json(result.rows)
+  }).catch(() => {
+    res.status(500).json('Server error')
+  })
+})
+
 app.post('/register', (req, res) => {
   pool.query('SELECT * FROM users WHERE email = $1', [req.body.email.trim()])
     .then((result) => {
