@@ -211,12 +211,15 @@ app.post('/posts', passport.authenticate('jwt', { session: false }), upload.arra
             'INSERT INTO posts (bookid, uid, content, status, price) '
             + 'VALUES ($1, $2, $3, $4, $5) RETURNING *',
             [bookid, req.user.id, content, status, parseInt(price, 10) || null]
-          ).then((rec) =>
-            pool.query(
-              `INSERT INTO post_images (pid, image) VALUES
-              ('${req.files.map(f => `${rec.rows[0].id}','${f.filename}`).join('\'), (\'')}')`
-            )
-          ).then(() => {
+          ).then((rec) => {
+            if (req.files && req.files.length > 0) {
+              return pool.query(
+                `INSERT INTO post_images (pid, image) VALUES
+                ('${req.files.map(f => `${rec.rows[0].id}','${f.filename}`).join('\'), (\'')}')`
+              )
+            }
+            return Promise.resolve()
+          }).then(() => {
             res.json({
               success: true
             })
