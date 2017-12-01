@@ -1,0 +1,5 @@
+{
+  "name": "Server for Book Sharing app",
+  "description": "Server for Book Sharing app using Express 4",
+  "repository": "https://github.com/FPTUHackathon/Book-Sharing"
+}
