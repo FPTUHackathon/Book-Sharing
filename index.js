@@ -122,7 +122,7 @@ app.post('/register', (req, res) => {
 
 app.post('/auth/facebook', (req, res) => {
   const { token } = req.body
-  axios.get(`https://graph.facebook.com/me?fields=id,name&access_token=${token}`)
+  axios.get(`https://graph.facebook.com/me?fields=id,name,picture&access_token=${token}`)
     .then((response) => {
       const { data } = response
       utils.providerLogin(pool, 'facebook', data)
@@ -181,7 +181,7 @@ app.get('/user/:id', (req, res) => {
     })
 })
 
-app.get('/posts/:bookid', (req, res) => {
+app.get('/posts/:bookid', passport.authenticate('jwt', { session: false }), (req, res) => {
   const { bookid } = req.params
   if (!bookid || isNaN(bookid)) {
     res.status(404).json('Book not found')
@@ -189,8 +189,8 @@ app.get('/posts/:bookid', (req, res) => {
     pool.query(
       'SELECT posts.*, users.id as userId, users.name as userName '
       + 'FROM posts INNER JOIN users ON posts.uid = users.id '
-      + 'WHERE posts.bookid = $1',
-      [bookid]
+      + 'WHERE posts.bookid = $1 AND posts.uid <> $2',
+      [bookid, req.user.id]
     ).then((result) => {
       res.json(result.rows)
     }).catch(() => {
