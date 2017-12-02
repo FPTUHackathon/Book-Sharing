@@ -188,7 +188,7 @@ app.get('/posts/:bookid', passport.authenticate('jwt', { session: false }), (req
     res.status(404).json('Book not found')
   } else {
     pool.query(
-      'SELECT posts.*, users.id as userId, users.name as userName '
+      'SELECT posts.*, users.id as userid, users.name as username, users.avatar '
       + 'FROM posts INNER JOIN users ON posts.uid = users.id '
       + 'WHERE posts.bookid = $1 AND posts.uid <> $2',
       [bookid, req.user.id]
@@ -394,6 +394,30 @@ app.get('/tag/:id', (req, res) => {
         row => ({ id: row.id, name: row.name, cover: row.cover, isbn: row.isbn })
       )
     })
+  }).catch(() => {
+    res.status(500).json('Server error')
+  })
+})
+
+app.get('/tag-name/:tagname', (req, res) => {
+  const { tagname } = req.params
+  if (!tagname) {
+    res.status(404).json('Invalid parameter(s)')
+    return
+  }
+  pool.query(
+    'SELECT books.* '
+    + 'FROM books_tags INNER JOIN books ON books_tags.bookid = books.id '
+    + 'INNER JOIN tags ON books_tags.tagid = tags.id '
+    + 'WHERE tags.name = $1',
+    [tagname]
+  ).then((result) => {
+    res.json({
+      tag: tagname,
+      books: result.rows
+    })
+  }).catch(() => {
+    res.status(500).json('Server error')
   })
 })
 
