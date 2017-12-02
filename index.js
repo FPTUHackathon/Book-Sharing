@@ -421,4 +421,13 @@ app.get('/tag-name/:tagname', (req, res) => {
   })
 })
 
+app.get('/profile/posts', passport.authenticate('jwt', { session: false }), (req, res) => {
+  pool.query('SELECT * FROM posts WHERE uid = $1 ORDER BY id', [req.user.id])
+    .then((result) => {
+      res.json(result.rows)
+    }).catch(() => {
+      res.status(500).json('Server error')
+    })
+})
+
 app.listen(PORT, () => console.log(`Listening on ${PORT}`))
