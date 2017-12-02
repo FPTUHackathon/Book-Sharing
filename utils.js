@@ -7,13 +7,13 @@ utils.providerLogin = (pool, provider, data) =>
   ).then((result) => {
     if (result.rows.length > 0) {
       return pool.query(
-        'UPDATE users SET name = $1 WHERE provider = $2 AND provider_id = $3 RETURNING *',
-        [data.name, provider, data.id]
+        'UPDATE users SET name = $1, avatar = $2 WHERE provider = $3 AND provider_id = $4 RETURNING *',
+        [data.name, data.avatar, provider, data.id]
       )
     }
     return pool.query(
-      'INSERT INTO users (name, provider_id, provider) VALUES ($1, $2, $3) RETURNING *',
-      [data.name, data.id, provider]
+      'INSERT INTO users (name, avatar, provider_id, provider) VALUES ($1, $2, $3, $4) RETURNING *',
+      [data.name, data.avatar, data.id, provider]
     )
   })
 

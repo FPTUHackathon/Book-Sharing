@@ -125,6 +125,7 @@ app.post('/auth/facebook', (req, res) => {
   axios.get(`https://graph.facebook.com/me?fields=id,name,picture&access_token=${token}`)
     .then((response) => {
       const { data } = response
+      data.avatar = data.picture.data.url
       utils.providerLogin(pool, 'facebook', data)
       .then((result) => {
         const payload = { id: result.rows[0].id }
