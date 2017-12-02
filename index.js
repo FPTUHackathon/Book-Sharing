@@ -247,18 +247,19 @@ app.get('/post/:id', (req, res) => {
   }
 })
 
-app.get('/comments/:pid', (req, res) => {
-  const { pid } = req.params
+app.get('/comments/:bookid', (req, res) => {
+  const { bookid } = req.params
   const page = parseInt(req.query.p, 10) || 1
 
-  if (!pid || isNaN(pid)) {
-    res.status(404).json('Post not found')
+  if (!bookid || isNaN(bookid)) {
+    res.status(404).json('Book not found')
   } else {
     pool.query(
       `SELECT * FROM comments
-      WHERE pid = $1
+      WHERE bookid = $1
+      ORDER BY timestamp DESC
       LIMIT ${config.itemsPerPage} OFFSET ${(page - 1) * config.itemsPerPage}`,
-      [pid]
+      [bookid]
     ).then((result) => {
       res.json(result.rows)
     }).catch(() => {
@@ -268,16 +269,17 @@ app.get('/comments/:pid', (req, res) => {
 })
 
 app.post('/comments', passport.authenticate('jwt', { session: false }), (req, res) => {
-  const { pid, content } = req.body
-  if (!pid || !content || isNaN(pid)) {
-    res.status(404).json('Post not found')
+  const { bookid, content } = req.body
+  if (!bookid || !content || isNaN(bookid)) {
+    res.status(404).json('Book not found')
   } else {
     pool.query(
-      'INSERT INTO comments (pid, uid, content) VALUES ($1, $2, $3)',
-      [pid, req.user.id, content.trim()]
-    ).then(() => {
+      'INSERT INTO comments (bookid, uid, content) VALUES ($1, $2, $3) RETURNING *',
+      [bookid, req.user.id, content.trim()]
+    ).then((result) => {
       res.json({
-        success: true
+        success: true,
+        comment: result.rows[0]
       })
     }).catch(() => {
       res.status(500).json('Server error')
