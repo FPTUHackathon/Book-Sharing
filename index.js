@@ -368,6 +368,15 @@ app.delete('/favorites/:bookid', passport.authenticate('jwt', { session: false }
   })
 })
 
+app.get('/tags', (req, res) => {
+  pool.query('SELECT * FROM tags ORDER BY name')
+    .then((result) => {
+      res.json(result.rows)
+    }).catch(() => {
+      res.status(500).json('Server error')
+    })
+})
+
 app.get('/tags/:bookid', (req, res) => {
   const { bookid } = req.params
   if (!bookid || isNaN(bookid)) {
