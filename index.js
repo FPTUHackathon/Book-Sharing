@@ -355,4 +355,23 @@ app.delete('/favorites/:bookid', passport.authenticate('jwt', { session: false }
   })
 })
 
+app.get('/tags/:bookid', (req, res) => {
+  const { bookid } = req.params
+  if (!bookid || isNaN(bookid)) {
+    res.status(404).json('Invalid parameter(s)')
+    return
+  }
+  pool.query(
+    'SELECT tags.name '
+    + 'FROM books_tags INNER JOIN tags ON books_tags.tagid = tags.id '
+    + 'WHERE books_tags.bookid = $1 '
+    + 'ORDER BY tags.name',
+    [bookid]
+  ).then((result) => {
+    res.json(result.rows.map(row => row.name))
+  }).catch(() => {
+    res.status(500).json('Server error')
+  })
+})
+
 app.listen(PORT, () => console.log(`Listening on ${PORT}`))
