@@ -4,11 +4,8 @@ const bodyParser = require('body-parser')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const passport = require('passport')
-const crypto = require('crypto')
 const JwtStrategy = require('passport-jwt').Strategy
 const ExtractJwt = require('passport-jwt').ExtractJwt
-const multer = require('multer')
-const mime = require('mime')
 const axios = require('axios')
 const { Pool } = require('pg')
 const config = require('./config')
@@ -16,17 +13,6 @@ const utils = require('./utils')
 
 const app = express();
 const PORT = process.env.PORT || 5000
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'public/uploads/')
-  },
-  filename: (req, file, cb) => {
-    crypto.pseudoRandomBytes(16, (err, raw) => {
-      cb(null, `${raw.toString('hex')}${Date.now()}.${mime.getExtension(file.mimetype)}`);
-    });
-  }
-});
-const upload = multer({ storage });
 
 // JWT settings
 const jwtOptions = {}
@@ -226,10 +212,18 @@ app.post('/posts', passport.authenticate('jwt', { session: false }), (req, res) 
             + 'VALUES ($1, $2, $3, $4, $5) RETURNING *',
             [bookid, req.user.id, content, status, parseInt(price, 10) || null]
           ).then((rec) => {
-            if (req.files && req.files.length > 0) {
+            const uploaded = []
+            if (image instanceof Array) {
+              for (let i = 0; i < image.length; i++) {
+                uploaded.push(image[i])
+              }
+            } else if (image) {
+              uploaded.push(image)
+            }
+            if (uploaded.length > 0) {
               return pool.query(
                 `INSERT INTO post_images (pid, image) VALUES
-                ('${req.files.map(f => `${rec.rows[0].id}','${f.filename}`).join('\'), (\'')}')`
+                ('${uploaded.map(img => `${rec.rows[0].id}','${img}`).join('\'), (\'')}')`
               )
             }
             return Promise.resolve()
@@ -258,6 +252,20 @@ app.get('/post/:id', (req, res) => {
         res.status(404).json('Post not found')
       }
     })
+  }
+})
+
+app.get('/images/:pid', (req, res) => {
+  const { pid } = req.params
+  if (!pid || isNaN(pid)) {
+    res.status(404).json('Post not found')
+  } else {
+    pool.query('SELECT * FROM post_images WHERE pid = $1', [pid])
+      .then((result) => {
+        res.json(result.rows.map(row => `${row.image}`))
+      }).catch(() => {
+        res.status(500).json('Server error')
+      })
   }
 })
 
