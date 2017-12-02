@@ -87,7 +87,7 @@ app.get('/isbn/:isbn', (req, res) => {
     'SELECT * FROM books WHERE isbn = $1',
     [req.params.isbn]
   ).then((result) => {
-    res.json(result.rows)
+    res.json(result.rows[0])
   }).catch(() => {
     res.status(500).json('Server error')
   })
