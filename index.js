@@ -320,7 +320,10 @@ app.get('/comment/:id', (req, res) => {
 
 app.get('/favorites', passport.authenticate('jwt', { session: false }), (req, res) => {
   pool.query(
-    'SELECT books.* FROM favorites INNER JOIN books ON favorites.bookid = books.id WHERE uid = $1',
+    'SELECT books.*, COUNT(posts.id) as count ' 
+    + 'FROM favorites INNER JOIN books ON favorites.bookid = books.id '
+    + 'LEFT JOIN posts ON books.id = posts.bookid '
+    + 'WHERE favorites.uid = $1 GROUP BY books.id',
     [req.user.id]
   ).then((result) => {
     res.json(result.rows)
@@ -403,10 +406,11 @@ app.get('/tag/:id', (req, res) => {
     return
   }
   pool.query(
-    'SELECT books.*, tags.name as tag '
+    'SELECT books.*, tags.name as tag, COUNT(posts.id) as count '
     + 'FROM books_tags INNER JOIN books ON books_tags.bookid = books.id '
     + 'INNER JOIN tags ON books_tags.tagid = tags.id '
-    + 'WHERE books_tags.tagid = $1',
+    + 'LEFT JOIN posts ON books.id = posts.bookid '
+    + 'WHERE books_tags.tagid = $1 GROUP BY books.id',
     [id]
   ).then((result) => {
     res.json({
@@ -427,10 +431,11 @@ app.get('/tag-name/:tagname', (req, res) => {
     return
   }
   pool.query(
-    'SELECT books.* '
+    'SELECT books.*, COUNT(posts.id) as count '
     + 'FROM books_tags INNER JOIN books ON books_tags.bookid = books.id '
     + 'INNER JOIN tags ON books_tags.tagid = tags.id '
-    + 'WHERE tags.name = $1',
+    + 'LEFT JOIN posts ON books.id = posts.bookid '
+    + 'WHERE tags.name = $1 GROUP BY books.id',
     [tagname]
   ).then((result) => {
     res.json({
@@ -458,7 +463,10 @@ app.get('/search', (req, res) => {
   } else {
     const words = q.split(/\s+/)
     pool.query(
-      'SELECT * FROM books WHERE to_tsvector(unaccent(removemarks(name))) @@ to_tsquery(unaccent(removemarks($1)))',
+      'SELECT books.*, COUNT(posts.id) as count '
+      + 'FROM books LEFT JOIN posts ON books.id = posts.bookid '
+      + 'WHERE to_tsvector(unaccent(removemarks(name))) @@ to_tsquery(unaccent(removemarks($1)))'
+      + 'GROUP BY books.id',
       [words.join(' & ')]
     ).then((result) => {
       res.json(result.rows)
