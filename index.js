@@ -122,7 +122,7 @@ app.post('/register', (req, res) => {
 
 app.post('/auth/facebook', (req, res) => {
   const { token } = req.body
-  axios.get(`https://graph.facebook.com/me?fields=id,name,location&access_token=${token}`)
+  axios.get(`https://graph.facebook.com/me?fields=id,name,email,location&access_token=${token}`)
     .then((response) => {
       const { data } = response
       data.avatar = `https://graph.facebook.com/${data.id}/picture?type=large`
@@ -139,6 +139,7 @@ app.post('/auth/facebook', (req, res) => {
             username: user.name,
             avatar: user.avatar,
             location: user.location,
+            email: user.email,
             provider_id: user.provider_id,
             provider: user.provider
           }
@@ -200,7 +201,7 @@ app.get('/posts/:bookid', passport.authenticate('jwt', { session: false }), (req
     res.status(404).json('Book not found')
   } else {
     pool.query(
-      'SELECT posts.*, users.id as userid, users.name as username, users.avatar, users.location '
+      'SELECT posts.*, users.id as userid, users.name as username, users.avatar, users.location, users.email '
       + 'FROM posts INNER JOIN users ON posts.uid = users.id '
       + 'WHERE posts.bookid = $1 AND posts.uid <> $2',
       [bookid, req.user.id]
@@ -212,8 +213,8 @@ app.get('/posts/:bookid', passport.authenticate('jwt', { session: false }), (req
   }
 })
 
-app.post('/posts', passport.authenticate('jwt', { session: false }), upload.array('photos', 10), (req, res) => {
-  const { bookid, content, price, status } = req.body
+app.post('/posts', passport.authenticate('jwt', { session: false }), (req, res) => {
+  const { bookid, content, price, status, image } = req.body
   if (!bookid || isNaN(bookid)) {
     res.status(404).json('Book not found')
   } else {
@@ -268,7 +269,7 @@ app.get('/comments/:bookid', (req, res) => {
     res.status(404).json('Book not found')
   } else {
     pool.query(
-      `SELECT comments.*, users.name as username, users.avatar, users.location FROM comments
+      `SELECT comments.*, users.name as username, users.avatar, users.location, users.email FROM comments
       INNER JOIN users ON comments.uid = users.id
       WHERE bookid = $1
       ORDER BY timestamp DESC
