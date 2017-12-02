@@ -431,4 +431,21 @@ app.get('/profile/posts', passport.authenticate('jwt', { session: false }), (req
     })
 })
 
+app.get('/search', (req, res) => {
+  const { q } = req.query
+  if (!q) {
+    res.json([])
+  } else {
+    const words = q.split(/\s+/)
+    pool.query(
+      'SELECT * FROM books WHERE to_tsvector(unaccent(removemarks(name))) @@ to_tsquery(unaccent(removemarks($1)))',
+      [words.join(' & ')]
+    ).then((result) => {
+      res.json(result.rows)
+    }).catch(() => {
+      res.status(500).json('Server error')
+    })
+  }
+})
+
 app.listen(PORT, () => console.log(`Listening on ${PORT}`))
