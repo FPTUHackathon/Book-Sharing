@@ -20,7 +20,7 @@ jwtOptions.jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken()
 jwtOptions.secretOrKey = 'booksharingg'
 
 passport.use(new JwtStrategy(jwtOptions, (payload, done) => {
-  pool.query('SELECT * FROM users WHERE id = $1', [payload.id])
+  pool.query('SELECT * FROM users WHERE userid = $1', [payload.userid])
     .then((result) => {
       if (result.rows.length === 1) {
         return done(null, result.rows[0])
@@ -85,14 +85,14 @@ app.post('/register', (req, res) => {
       if (result.rows.length > 0) {
         res.status(400).json('Email already exists')
       } else {
-        let { name, email } = req.body
+        let { username, email } = req.body
         const { password } = req.body
-        name = name.trim()
+        username = username.trim()
         email = email.trim()
         bcrypt.hash(password, config.passwordHashRounds, (err, hash) => {
           pool.query(
-            'INSERT INTO users (email, password, name) VALUES ($1, $2, $3)',
-            [email, hash, name || email]
+            'INSERT INTO users (email, password, username) VALUES ($1, $2, $3)',
+            [email, hash, username || email]
           ).then(() => {
             res.json({
               success: true
@@ -115,14 +115,14 @@ app.post('/auth/facebook', (req, res) => {
       utils.providerLogin(pool, 'facebook', data)
       .then((result) => {
         const user = result.rows[0]
-        const payload = { id: result.rows[0].id }
+        const payload = { userid: result.rows[0].userid }
         const jwtToken = jwt.sign(payload, jwtOptions.secretOrKey, { expiresIn: '7 days' })
         res.json({
           success: true,
           token: jwtToken,
           user: {
-            userid: user.id,
-            username: user.name,
+            userid: user.userid,
+            username: user.username,
             avatar: user.avatar,
             location: user.location,
             email: user.email,
@@ -152,7 +152,7 @@ app.post('/login', (req, res) => {
       const user = result.rows[0]
       bcrypt.compare(password, user.password, (error, success) => {
         if (success) {
-          const payload = { id: user.id }
+          const payload = { userid: user.userid }
           const token = jwt.sign(payload, jwtOptions.secretOrKey)
           res.json({ success: true, token })
         } else {
@@ -169,8 +169,8 @@ app.post('/login', (req, res) => {
 
 app.get('/user/:id', (req, res) => {
   pool.query(
-    `SELECT id, name, email, provider_id, provider, avatar, location
-    FROM users WHERE ${isNaN(req.params.id) ? 'email = $1' : 'id = $1'}`,
+    `SELECT userid, username, email, provider_id, provider, avatar, location
+    FROM users WHERE ${isNaN(req.params.id) ? 'email = $1' : 'userid = $1'}`,
     [req.params.id]
   ).then((result) => {
       if (result.rows.length > 0) {
@@ -187,10 +187,10 @@ app.get('/posts/:bookid', passport.authenticate('jwt', { session: false }), (req
     res.status(404).json('Book not found')
   } else {
     pool.query(
-      'SELECT posts.*, users.id as userid, users.name as username, users.avatar, users.location, users.email '
-      + 'FROM posts INNER JOIN users ON posts.uid = users.id '
+      'SELECT posts.*, users.userid, users.username, users.avatar, users.location, users.email '
+      + 'FROM posts INNER JOIN users ON posts.uid = users.userid '
       + 'WHERE posts.bookid = $1 AND posts.uid <> $2',
-      [bookid, req.user.id]
+      [bookid, req.user.userid]
     ).then((result) => {
       res.json(result.rows)
     }).catch(() => {
@@ -210,7 +210,7 @@ app.post('/posts', passport.authenticate('jwt', { session: false }), (req, res) 
           return pool.query(
             'INSERT INTO posts (bookid, uid, content, status, price) '
             + 'VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [bookid, req.user.id, content, status, parseInt(price, 10) || null]
+            [bookid, req.user.userid, content, status, parseInt(price, 10) || null]
           ).then((rec) => {
             const uploaded = []
             if (image instanceof Array) {
@@ -277,8 +277,8 @@ app.get('/comments/:bookid', (req, res) => {
     res.status(404).json('Book not found')
   } else {
     pool.query(
-      `SELECT comments.*, users.name as username, users.avatar, users.location, users.email FROM comments
-      INNER JOIN users ON comments.uid = users.id
+      `SELECT comments.*, users.username, users.avatar, users.location, users.email FROM comments
+      INNER JOIN users ON comments.uid = users.userid
       WHERE bookid = $1
       ORDER BY timestamp DESC
       LIMIT ${config.itemsPerPage} OFFSET ${(page - 1) * config.itemsPerPage}`,
@@ -298,7 +298,7 @@ app.post('/comments', passport.authenticate('jwt', { session: false }), (req, re
   } else {
     pool.query(
       'INSERT INTO comments (bookid, uid, content) VALUES ($1, $2, $3) RETURNING *',
-      [bookid, req.user.id, content.trim()]
+      [bookid, req.user.userid, content.trim()]
     ).then((result) => {
       res.json({
         success: true,
@@ -334,7 +334,7 @@ app.get('/favorites', passport.authenticate('jwt', { session: false }), (req, re
     + 'FROM favorites INNER JOIN books ON favorites.bookid = books.id '
     + 'LEFT JOIN posts ON books.id = posts.bookid '
     + 'WHERE favorites.uid = $1 GROUP BY books.id',
-    [req.user.id]
+    [req.user.userid]
   ).then((result) => {
     res.json(result.rows)
   }).catch(() => {
@@ -355,7 +355,7 @@ app.post('/favorites', passport.authenticate('jwt', { session: false }), (req, r
       } else {
         pool.query(
           'INSERT INTO favorites (uid, bookid) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-          [req.user.id, bookid]
+          [req.user.userid, bookid]
         ).then(() => {
           res.json({ success: true })
         })
@@ -373,7 +373,7 @@ app.delete('/favorites/:bookid', passport.authenticate('jwt', { session: false }
   }
   pool.query(
     'DELETE FROM favorites WHERE uid = $1 AND bookid = $2',
-    [req.user.id, bookid]
+    [req.user.userid, bookid]
   ).then(() => {
     res.json({ success: true })
   }).catch(() => {
@@ -458,7 +458,7 @@ app.get('/tag-name/:tagname', (req, res) => {
 })
 
 app.get('/profile/posts', passport.authenticate('jwt', { session: false }), (req, res) => {
-  pool.query('SELECT * FROM posts WHERE uid = $1 ORDER BY id', [req.user.id])
+  pool.query('SELECT * FROM posts WHERE uid = $1 ORDER BY id', [req.user.userid])
     .then((result) => {
       res.json(result.rows)
     }).catch(() => {
