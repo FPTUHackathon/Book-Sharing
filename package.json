@@ -1,7 +1,7 @@
 {
-  "name": "node-js-getting-started",
-  "version": "0.3.0",
-  "description": "A sample Node.js app using Express 4",
+  "name": "book-sharing-server",
+  "version": "0.5.0",
+  "description": "Server for Book Sharing app using Express 4",
   "engines": {
     "node": "8.9.1"
   },
@@ -31,7 +31,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/heroku/node-js-getting-started"
+    "url": "https://github.com/FPTUHackathon/Book-Sharing"
   },
   "keywords": [
     "node",
