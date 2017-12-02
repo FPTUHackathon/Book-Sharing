@@ -200,7 +200,7 @@ app.get('/posts/:bookid', passport.authenticate('jwt', { session: false }), (req
 })
 
 app.post('/posts', passport.authenticate('jwt', { session: false }), (req, res) => {
-  const { bookid, content, price, status, image } = req.body
+  const { bookid, content, price, status, images } = req.body
   if (!bookid || isNaN(bookid)) {
     res.status(404).json('Book not found')
   } else {
@@ -213,12 +213,12 @@ app.post('/posts', passport.authenticate('jwt', { session: false }), (req, res) 
             [bookid, req.user.userid, content, status, parseInt(price, 10) || null]
           ).then((rec) => {
             const uploaded = []
-            if (image instanceof Array) {
-              for (let i = 0; i < image.length; i++) {
-                uploaded.push(image[i])
+            if (images instanceof Array) {
+              for (let i = 0; i < images.length; i++) {
+                uploaded.push(images[i])
               }
-            } else if (image) {
-              uploaded.push(image)
+            } else if (images) {
+              uploaded.push(images)
             }
             if (uploaded.length > 0) {
               return pool.query(
