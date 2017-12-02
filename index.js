@@ -128,7 +128,7 @@ app.post('/auth/facebook', (req, res) => {
       utils.providerLogin(pool, 'facebook', data)
       .then((result) => {
         const payload = { id: result.rows[0].id }
-        const jwtToken = jwt.sign(payload, jwtOptions.secretOrKey)
+        const jwtToken = jwt.sign(payload, jwtOptions.secretOrKey, { expiresIn: '7 days' })
         res.json({ success: true, token: jwtToken, user: result.rows[0] })
       })
       .catch(() => {
