@@ -256,7 +256,8 @@ app.get('/comments/:bookid', (req, res) => {
     res.status(404).json('Book not found')
   } else {
     pool.query(
-      `SELECT * FROM comments
+      `SELECT comments.*, users.name as username, users.avatar FROM comments
+      INNER JOIN users ON comments.uid = users.id
       WHERE bookid = $1
       ORDER BY timestamp DESC
       LIMIT ${config.itemsPerPage} OFFSET ${(page - 1) * config.itemsPerPage}`,
