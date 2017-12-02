@@ -374,4 +374,26 @@ app.get('/tags/:bookid', (req, res) => {
   })
 })
 
+app.get('/tag/:id', (req, res) => {
+  const { id } = req.params
+  if (!id || isNaN(id)) {
+    res.status(404).json('Invalid parameter(s)')
+    return
+  }
+  pool.query(
+    'SELECT books.*, tags.name as tag '
+    + 'FROM books_tags INNER JOIN books ON books_tags.bookid = books.id '
+    + 'INNER JOIN tags ON books_tags.tagid = tags.id '
+    + 'WHERE books_tags.tagid = $1',
+    [id]
+  ).then((result) => {
+    res.json({
+      tag: result.rows.length ? result.rows[0].tag : null,
+      books: result.rows.map(
+        row => ({ id: row.id, name: row.name, cover: row.cover, isbn: row.isbn })
+      )
+    })
+  })
+})
+
 app.listen(PORT, () => console.log(`Listening on ${PORT}`))
