@@ -128,9 +128,20 @@ app.post('/auth/facebook', (req, res) => {
       data.avatar = `https://graph.facebook.com/${data.id}/picture?type=large`
       utils.providerLogin(pool, 'facebook', data)
       .then((result) => {
+        const user = result.rows[0]
         const payload = { id: result.rows[0].id }
         const jwtToken = jwt.sign(payload, jwtOptions.secretOrKey, { expiresIn: '7 days' })
-        res.json({ success: true, token: jwtToken, user: result.rows[0] })
+        res.json({
+          success: true,
+          token: jwtToken,
+          user: {
+            userid: user.id,
+            username: user.name,
+            avatar: user.avatar,
+            provider_id: user.provider_id,
+            provider: user.provider
+          }
+        })
       })
       .catch(() => {
         res.status(500).json('Server error')
