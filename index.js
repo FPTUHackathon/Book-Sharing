@@ -434,9 +434,9 @@ app.get('/tag/:id', (req, res) => {
   })
 })
 
-app.get('/tag-name/:tagname', (req, res) => {
-  const { tagname } = req.params
-  if (!tagname) {
+app.get('/tag-name', (req, res) => {
+  const { tag } = req.query
+  if (!tag) {
     res.status(404).json('Invalid parameter(s)')
     return
   }
@@ -446,10 +446,10 @@ app.get('/tag-name/:tagname', (req, res) => {
     + 'INNER JOIN tags ON books_tags.tagid = tags.id '
     + 'LEFT JOIN posts ON books.id = posts.bookid '
     + 'WHERE tags.name = $1 GROUP BY books.id',
-    [tagname]
+    [tag]
   ).then((result) => {
     res.json({
-      tag: tagname,
+      tag,
       books: result.rows
     })
   }).catch(() => {
