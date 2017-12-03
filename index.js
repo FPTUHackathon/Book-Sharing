@@ -210,7 +210,7 @@ app.post('/posts', passport.authenticate('jwt', { session: false }), (req, res) 
           return pool.query(
             'INSERT INTO posts (bookid, uid, content, status, price) '
             + 'VALUES ($1, $2, $3, $4, $5) RETURNING *',
-            [bookid, req.user.userid, content, status, parseInt(price, 10) || null]
+            [bookid, req.user.userid, content, parseInt(status, 10) || 0, parseInt(price, 10) || null]
           ).then((rec) => {
             const uploaded = []
             if (images instanceof Array) {
@@ -458,12 +458,16 @@ app.get('/tag-name', (req, res) => {
 })
 
 app.get('/profile/posts', passport.authenticate('jwt', { session: false }), (req, res) => {
-  pool.query('SELECT * FROM posts WHERE uid = $1 ORDER BY id', [req.user.userid])
-    .then((result) => {
-      res.json(result.rows)
-    }).catch(() => {
-      res.status(500).json('Server error')
-    })
+  pool.query(
+    'SELECT posts.*, books.name, books.cover '
+    + 'FROM posts INNER JOIN books ON posts.bookid = books.id '
+    + 'WHERE uid = $1 ORDER BY posts.id',
+    [req.user.userid]
+  ).then((result) => {
+    res.json(result.rows)
+  }).catch(() => {
+    res.status(500).json('Server error')
+  })
 })
 
 app.get('/search', (req, res) => {
