@@ -66,12 +66,10 @@ app.get('/book/:id', (req, res) => {
     res.status(404).json('Book not found')
   }
   pool.query(
-    'SELECT books.*, '
-    + '(SELECT count(*) FROM posts WHERE'
-    + 'array_agg(tags.name) as tags '
+    'SELECT books.*, array_agg(tags.name) as tags '
     + 'FROM books LEFT JOIN books_tags ON books.id = books_tags.bookid '
-    + 'INNER JOIN tags ON books_tags.tagid = tags.id '
-    + 'WHERE books.id = 1 '
+    + 'LEFT JOIN tags ON books_tags.tagid = tags.id '
+    + 'WHERE books.id = $1 '
     + 'GROUP BY books.id',
     [req.params.id]
   ).then((result) => {
@@ -85,7 +83,7 @@ app.get('/book/:id', (req, res) => {
       res.json(book)
     }
   }).catch(() => {
-    res.status(404).json('Book not found')
+    res.status(500).json('Server error')
   })
 })
 
