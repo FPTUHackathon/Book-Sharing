@@ -202,6 +202,7 @@ app.get('/posts/:bookid', passport.authenticate('jwt', { session: false }), (req
         price: row.price,
         sold: row.sold,
         timestamp: row.timestamp,
+        images: row.images.filter(img => img != null),
         user: {
           userid: row.userid,
           username: row.username,
@@ -218,7 +219,6 @@ app.get('/posts/:bookid', passport.authenticate('jwt', { session: false }), (req
           isbn: row.isbn,
           author: row.author,
           description: row.description,
-          images: row.images.filter(img => img != null)
         }
       })))
     }).catch(() => {
