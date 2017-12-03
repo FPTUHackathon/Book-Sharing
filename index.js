@@ -207,6 +207,7 @@ app.get('/posts/:bookid', passport.authenticate('jwt', { session: false }), (req
         sold: row.sold,
         timestamp: row.timestamp,
         images: row.images.filter(img => img != null),
+        isOwner: req.user.userid === row.userid,
         user: {
           userid: row.userid,
           username: row.username,
