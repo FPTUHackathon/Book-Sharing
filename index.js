@@ -478,12 +478,30 @@ app.get('/tag-name', (req, res) => {
 
 app.get('/profile/posts', passport.authenticate('jwt', { session: false }), (req, res) => {
   pool.query(
-    'SELECT posts.*, books.name, books.cover '
+    'SELECT posts.*, books.*, array_agg(post_images.image) as images '
     + 'FROM posts INNER JOIN books ON posts.bookid = books.id '
-    + 'WHERE uid = $1 ORDER BY posts.id',
+    + 'LEFT JOIN post_images ON posts.id = post_images.pid '
+    + 'WHERE uid = $1 '
+    + 'GROUP BY posts.id, books.id '
+    + 'ORDER BY posts.id',
     [req.user.userid]
   ).then((result) => {
-    res.json(result.rows)
+    res.json(result.rows.map(row => ({
+      id: row.id,
+      content: row.content,
+      price: row.price,
+      sold: row.sold,
+      timestamp: row.timestamp,
+      images: row.images.filter(img => img !== null),
+      book: {
+        id: row.bookid,
+        name: row.name,
+        cover: row.cover,
+        isbn: row.isbn,
+        author: row.author,
+        description: row.description,
+      }
+    })))
   }).catch(() => {
     res.status(500).json('Server error')
   })
