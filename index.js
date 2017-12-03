@@ -189,8 +189,8 @@ app.get('/posts/:bookid', passport.authenticate('jwt', { session: false }), (req
     pool.query(
       'SELECT posts.*, users.userid, users.username, users.avatar, users.location, users.email '
       + 'FROM posts INNER JOIN users ON posts.uid = users.userid '
-      + 'WHERE posts.bookid = $1 AND posts.uid <> $2',
-      [bookid, req.user.userid]
+      + 'WHERE posts.bookid = $1 ORDER BY timestamp DESC',
+      [bookid]
     ).then((result) => {
       res.json(result.rows)
     }).catch(() => {
