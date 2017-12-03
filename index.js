@@ -61,6 +61,10 @@ app.get('/books', (req, res) => {
 })
 
 app.get('/book/:id', (req, res) => {
+  const { id } = req.params
+  if (!id || isNaN(id)) {
+    res.status(404).json('Book not found')
+  }
   pool.query(
     'SELECT books.*, array_agg(tags.name) as tags '
     + 'FROM books LEFT JOIN books_tags ON books.id = books_tags.bookid '
@@ -503,6 +507,25 @@ app.get('/search', (req, res) => {
       res.status(500).json('Server error')
     })
   }
+})
+
+app.delete('/post/:id', passport.authenticate('jwt', { session: false }), (req, res) => {
+  const { id } = req.params
+  if (!id || isNaN(id)) {
+    res.status(404).json('Post not found')
+  }
+  pool.query(
+    'DELETE FROM posts WHERE id = $1 AND uid = $2 RETURNING *', [id, req.user.userid]
+  ).then((result) => {
+    if (result.rows.length === 0) {
+      res.status(404).json('Post not found')
+    } else {
+      const post = result.rows[0]
+      res.json(post)
+    }
+  }).catch(() => {
+    res.status(500).json('Server error')
+  })
 })
 
 app.listen(PORT, () => console.log(`Listening on ${PORT}`))
