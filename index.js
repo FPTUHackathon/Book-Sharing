@@ -187,12 +187,40 @@ app.get('/posts/:bookid', passport.authenticate('jwt', { session: false }), (req
     res.status(404).json('Book not found')
   } else {
     pool.query(
-      'SELECT posts.*, users.userid, users.username, users.avatar, users.location, users.email '
+      'SELECT posts.*, users.*, books.*, array_agg(post_images.image) as images '
       + 'FROM posts INNER JOIN users ON posts.uid = users.userid '
-      + 'WHERE posts.bookid = $1 ORDER BY timestamp DESC',
+      + 'INNER JOIN books ON posts.bookid = books.id '
+      + 'LEFT JOIN post_images ON posts.id = post_images.pid '
+      + 'WHERE posts.bookid = $1 '
+      + 'GROUP BY posts.id, users.userid, books.id '
+      + 'ORDER BY timestamp DESC',
       [bookid]
     ).then((result) => {
-      res.json(result.rows)
+      res.json(result.rows.map(row => ({
+        id: row.id,
+        content: row.content,
+        price: row.price,
+        sold: row.sold,
+        timestamp: row.timestamp,
+        user: {
+          userid: row.userid,
+          username: row.username,
+          provider_id: row.provider_id,
+          provider: row.provider,
+          email: row.email,
+          avatar: row.avatar,
+          location: row.location
+        },
+        book: {
+          id: row.bookid,
+          name: row.name,
+          cover: row.cover,
+          isbn: row.isbn,
+          author: row.author,
+          description: row.description,
+          images: row.images.filter(img => img != null)
+        }
+      })))
     }).catch(() => {
       res.status(500).json('Server error')
     })
@@ -234,35 +262,6 @@ app.post('/posts', passport.authenticate('jwt', { session: false }), (req, res) 
           })
         }
         res.status(404).json('Book not found')
-      }).catch(() => {
-        res.status(500).json('Server error')
-      })
-  }
-})
-
-app.get('/post/:id', (req, res) => {
-  const { id } = req.params
-  if (!id || isNaN(id)) {
-    res.status(404).json('Post not found')
-  } else {
-    pool.query('SELECT * FROM posts WHERE id = $1', [id]).then((result) => {
-      if (result.rows.length === 1) {
-        res.json(result.rows[0])
-      } else {
-        res.status(404).json('Post not found')
-      }
-    })
-  }
-})
-
-app.get('/images/:pid', (req, res) => {
-  const { pid } = req.params
-  if (!pid || isNaN(pid)) {
-    res.status(404).json('Post not found')
-  } else {
-    pool.query('SELECT * FROM post_images WHERE pid = $1', [pid])
-      .then((result) => {
-        res.json(result.rows.map(row => `${row.image}`))
       }).catch(() => {
         res.status(500).json('Server error')
       })
