@@ -61,15 +61,26 @@ app.get('/books', (req, res) => {
 })
 
 app.get('/book/:id', (req, res) => {
-  pool.query('SELECT * FROM books WHERE id = $1', [req.params.id])
-    .then((result) => {
-      if (result.rows.length === 0) {
-        res.status(404).json('Book not found')
-      }
-      res.json(result.rows[0])
-    }).catch(() => {
+  pool.query(
+    'SELECT books.*, array_agg(tags.name) as tags '
+    + 'FROM books LEFT JOIN books_tags ON books.id = books_tags.bookid '
+    + 'INNER JOIN tags ON books_tags.tagid = tags.id '
+    + 'WHERE books.id = 1 '
+    + 'GROUP BY books.id',
+    [req.params.id]
+  ).then((result) => {
+    if (result.rows.length === 0) {
       res.status(404).json('Book not found')
-    })
+    } else {
+      const book = result.rows[0]
+      if (book.tags) {
+        book.tags = book.tags.filter(tag => tag !== null)
+      }
+      res.json(book)
+    }
+  }).catch(() => {
+    res.status(404).json('Book not found')
+  })
 })
 
 app.get('/isbn/:isbn', (req, res) => {
@@ -206,7 +217,7 @@ app.get('/posts/:bookid', passport.authenticate('jwt', { session: false }), (req
         price: row.price,
         sold: row.sold,
         timestamp: row.timestamp,
-        images: row.images.filter(img => img != null),
+        images: row.images.filter(img => img !== null),
         isOwner: req.user.userid === row.userid,
         user: {
           userid: row.userid,
