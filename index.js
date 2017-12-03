@@ -66,7 +66,9 @@ app.get('/book/:id', (req, res) => {
     res.status(404).json('Book not found')
   }
   pool.query(
-    'SELECT books.*, array_agg(tags.name) as tags '
+    'SELECT books.*, '
+    + '(SELECT count(*) FROM posts WHERE'
+    + 'array_agg(tags.name) as tags '
     + 'FROM books LEFT JOIN books_tags ON books.id = books_tags.bookid '
     + 'INNER JOIN tags ON books_tags.tagid = tags.id '
     + 'WHERE books.id = 1 '
@@ -89,7 +91,11 @@ app.get('/book/:id', (req, res) => {
 
 app.get('/isbn/:isbn', (req, res) => {
   pool.query(
-    'SELECT * FROM books WHERE isbn = $1',
+    'SELECT books.*, COUNT(posts.id) as count, '
+    + '(SELECT COUNT(*) FROM comments WHERE comments.bookid = posts.bookid) as comment_count '
+    + 'FROM books LEFT JOIN posts ON books.id = posts.bookid '
+    + 'WHERE isbn = $1 '
+    + 'GROUP BY books.id , comment_count',
     [req.params.isbn]
   ).then((result) => {
     res.json(result.rows[0])
@@ -478,11 +484,11 @@ app.get('/tag-name', (req, res) => {
 
 app.get('/profile/posts', passport.authenticate('jwt', { session: false }), (req, res) => {
   pool.query(
-    'SELECT posts.*, books.*, array_agg(post_images.image) as images '
+    'SELECT posts.*, books.name, books.cover, books.isbn, books.author, books.description, array_agg(post_images.image) as images '
     + 'FROM posts INNER JOIN books ON posts.bookid = books.id '
     + 'LEFT JOIN post_images ON posts.id = post_images.pid '
     + 'WHERE uid = $1 '
-    + 'GROUP BY posts.id, books.id '
+    + 'GROUP BY posts.id, books.name, books.cover, books.isbn, books.author, books.description '
     + 'ORDER BY posts.id',
     [req.user.userid]
   ).then((result) => {
