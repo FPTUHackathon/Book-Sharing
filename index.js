@@ -43,7 +43,6 @@ app.use(bodyParser.json())
   .use(express.static(path.join(__dirname, 'public')))
 
 app.get('/books', (req, res) => {
-  const page = parseInt(req.query.p, 10) || 1
   let { sort } = req.query
   if (!sort || ['sale', 'comment'].indexOf(sort) < 0) {
     sort = 'sale'
@@ -53,7 +52,7 @@ app.get('/books', (req, res) => {
     FROM books LEFT JOIN posts ON books.id = posts.bookid 
     GROUP BY books.id , comment_count
     ORDER BY ${sort === 'sale' ? 'count' : 'comment_count'} DESC
-    LIMIT ${config.itemsPerPage} OFFSET ${(page - 1) * config.itemsPerPage}`
+    ${parseInt(req.query.p, 10) ? (`LIMIT ${config.itemsPerPage} OFFSET ${(page - 1) * config.itemsPerPage}`) : ''}`
   pool.query(queryString)
     .then((result) => {
       res.json(result.rows)
